@@ -2,6 +2,7 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from jinja2 import Template
+from tools.get_table_tool import get_tables_tool
 
 load_dotenv()
 
@@ -31,4 +32,6 @@ def sqlagent(request: str, database: str, model: str = "gpt-5-nano-2025-08-07") 
 
     return response.choices[0].message.content
 
-print(sqlagent("please find the number of rows where the amount of slot tags are mismatched with the number of tokens","243hw2.db"))
+# print(sqlagent("please find the number of rows where the amount of slot tags are mismatched with the number of tokens","243hw2.db"))
+
+get_tables_tool("243hw2.db")
