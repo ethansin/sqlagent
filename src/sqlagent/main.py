@@ -16,18 +16,9 @@ load_dotenv()
 api_key = os.getenv("OPENAI_KEY")
 
 def parse_tool_selection(message: str) -> str:
-    match = re.search(
-        r'!!!START_OF_COMMAND_BLOCK!!!(.*?)!!!END_OF_COMMAND_BLOCK!!!',
-        message,
-        re.DOTALL
-    )
-
-    if not match:
-        raise ValueError("Command block not found.")
-
-    code = match.group(1).strip()
+    """Extract the tool selection JSON payload from the agent's message."""
     try:
-        return json.loads(code)
+        return json.loads(message)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in payload: {e}") from e
 
@@ -50,6 +41,19 @@ def tool_selector(tool_values: dict, database: str) -> str:
 
 def agent_loop(initial_message: str, database: str, model: str = "gpt-5-nano-2025-08-07") -> None:
 
+
+    with open("src/sqlagent/templates/issue_command.md", "r") as f:
+        issue_command_prompt = {
+            "role": "system",
+            "content": f.read()
+        }
+
+    with open("src/sqlagent/templates/explanation.md", "r") as f:
+        explanation_prompt = {
+            "role": "system",
+            "content": f.read()
+        }
+
     client = OpenAI(api_key=api_key)
 
     messages = [{
@@ -59,18 +63,36 @@ def agent_loop(initial_message: str, database: str, model: str = "gpt-5-nano-202
 
     task_status = "IN_PROGRESS"
 
+    first_turn = True
+
     while task_status != "DONE":
+
+        if first_turn:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages
+            )
+        else:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages + [explanation_prompt]
+            )
+
+        agent_explanation = response.choices[0].message.content
+        print(agent_explanation)
+        messages.append({
+            "role": "assistant",
+            "content": agent_explanation
+        })
+
+        
         response = client.chat.completions.create(
             model=model,
-            messages=messages
+            messages=messages + [issue_command_prompt]
         )
 
         agent_turn = response.choices[0].message.content
         print(agent_turn)
-        messages.append({
-            "role": "assistant",
-            "content": agent_turn
-        })
 
         tool_code = parse_tool_selection(agent_turn)
         tool_output = tool_selector(tool_code, database)
@@ -82,17 +104,17 @@ def agent_loop(initial_message: str, database: str, model: str = "gpt-5-nano-202
             "content": "#TOOL OUTPUT\n" + tool_selector(tool_code, database)
         })
         
-    messages.append({
-        "role": "user",
-        "content": "Thanks for working on this. Can you provide the final answer with any relevant data I might need to see?"
-    })
+    # messages.append({
+    #     "role": "user",
+    #     "content": "Thanks for working on this. Can you provide the final answer with any relevant data I might need to see?"
+    # })
 
-    final_response = client.chat.completions.create(
-        model=model,
-        messages=messages
-    )
+    # final_response = client.chat.completions.create(
+    #     model=model,
+    #     messages=messages
+    # )
 
-    print(final_response.choices[0].message.content)
+    # print(final_response.choices[0].message.content)
 
     return messages
 
@@ -113,4 +135,4 @@ def sqlagent(request: str, database: str) -> None:
         for message in message_log:
             f.write(f"{message['role'].upper()}:\n{message['content']}\n\n")
 
-sqlagent("please find the number of rows that have utterances","243hw2.db")
+sqlagent("please find the number of rows where the number of slot tags is mismatched with the number of tokens","243hw2.db")
