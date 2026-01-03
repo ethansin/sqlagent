@@ -7,4 +7,4 @@ def get_tables_tool(database: str) -> list[str]:
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = [row[0] for row in cursor.fetchall()]
     conn.close()
-    return tables
+    return str(tables)

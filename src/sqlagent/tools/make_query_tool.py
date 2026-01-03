@@ -8,4 +8,4 @@ def make_query_tool(database: str, query: str) -> list[tuple]:
     column_names = [description[0] for description in cursor.description]
     results = cursor.fetchall()
     conn.close()
-    return column_names, results
+    return str(column_names) + "\n" + str(results)

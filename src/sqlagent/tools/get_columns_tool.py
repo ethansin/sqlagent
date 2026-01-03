@@ -7,4 +7,4 @@ def get_columns_tool(database: str, table: str) -> list[dict]:
     cursor.execute(f"PRAGMA table_info({table});")
     columns = [dict(zip(["cid", "name", "type", "notnull", "default_value", "primary_key"], row)) for row in cursor.fetchall()]
     conn.close()
-    return columns
+    return str(columns)
