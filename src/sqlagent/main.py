@@ -15,7 +15,7 @@ load_dotenv()
 
 api_key = os.getenv("OPENAI_KEY")
 
-def parse_tool_selection(message: str) -> str:
+def parse_tool_selection(message: str) -> dict:
     """Extract the tool selection JSON payload from the agent's message."""
     try:
         return json.loads(message)
