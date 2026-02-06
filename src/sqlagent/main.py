@@ -39,7 +39,7 @@ def tool_selector(tool_values: dict, database: str) -> str:
     else: 
         return "Invalid tool selected. Please check your formatting or the name of the tool you used to verify it matches one in the list of tools."
 
-def agent_loop(initial_message: str, database: str, model: str = "gpt-5-nano-2025-08-07") -> None:
+def agent_loop(initial_message: str, database: str, request: str, model: str = "gpt-5-nano-2025-08-07") -> None:
 
 
     with open("src/sqlagent/templates/issue_command.md", "r") as f:
@@ -49,9 +49,13 @@ def agent_loop(initial_message: str, database: str, model: str = "gpt-5-nano-202
         }
 
     with open("src/sqlagent/templates/explanation.md", "r") as f:
+        explanation_template = Template(f.read())
+        explanation_prompt_content = explanation_template.render(
+            request=request
+        )
         explanation_prompt = {
             "role": "system",
-            "content": f.read()
+            "content": explanation_prompt_content
         }
 
     client = OpenAI(api_key=api_key)
@@ -96,7 +100,7 @@ def agent_loop(initial_message: str, database: str, model: str = "gpt-5-nano-202
 
         tool_code = parse_tool_selection(agent_turn)
         tool_output = tool_selector(tool_code, database)
-        print(tool_output)
+        print(tool_output[:200])
         if tool_output == "DONE":
             task_status = "DONE"
         messages.append({
@@ -129,7 +133,7 @@ def sqlagent(request: str, database: str) -> None:
         request=request
         )
     
-    message_log = agent_loop(initial_message, database, model="gpt-5-nano-2025-08-07")
+    message_log = agent_loop(initial_message, database, request=request, model="gpt-5-nano-2025-08-07")
 
     with open("bin/sqlagent_message_log.txt", "w") as f:
         for message in message_log:
