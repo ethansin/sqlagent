@@ -46,3 +46,11 @@ description: Returns a list of strings containing the names of each file in the 
 input type: None
 output: None
 description: Declares all necessary information is retrieved for the task to be finished.
+
+### PYTHON NOTES
+
+You have the sqlite3 library installed in your environment.
+
+You have access to pandas to inspect things like csv easily if needed.
+
+Do not assume you have more niche libraries installed.
