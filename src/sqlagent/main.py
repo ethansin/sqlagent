@@ -139,4 +139,19 @@ def sqlagent(request: str, database: str) -> None:
         for message in message_log:
             f.write(f"{message['role'].upper()}:\n{message['content']}\n\n")
 
-sqlagent("please find the number of rows where the number of slot tags is mismatched with the number of tokens","243hw2.db")
+
+def cli() -> None:
+    """Interactive CLI: prompt for database path and agent request, then run sqlagent."""
+    database = input("Database path: ").strip()
+    while True:
+        request = input("Agent prompt: ").strip()
+        sqlagent(request, database)
+
+        again = input("Make another request? (y/n): ").strip().lower()
+        if again not in ("y", "yes"):
+            print("Goodbye.")
+            break
+
+
+if __name__ == "__main__":
+    cli()
