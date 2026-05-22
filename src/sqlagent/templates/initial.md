@@ -54,3 +54,5 @@ You have the sqlite3 library installed in your environment.
 You have access to pandas to inspect things like csv easily if needed.
 
 Do not assume you have more niche libraries installed.
+
+Make sure you use absolute paths whenever possible to ensure the correct files are used.
