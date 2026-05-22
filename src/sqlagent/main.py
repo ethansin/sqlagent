@@ -10,6 +10,7 @@ from tools.get_columns_tool import get_columns_tool
 from tools.make_query_tool import make_query_tool
 from tools.write_script_tool import write_script_tool
 from tools.execute_script_tool import execute_script_tool
+from tools.list_files_tool import list_files_tool
 
 load_dotenv()
 
@@ -22,7 +23,7 @@ def parse_tool_selection(message: str) -> dict:
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in payload: {e}") from e
 
-def tool_selector(tool_values: dict, database: str) -> str:
+def tool_selector(tool_values: dict, database: str, files_directory: str) -> str:
     """Select the appropriate tool based on the tool values provided."""
     if tool_values['tool_name'] == "get_tables":
         return get_tables_tool(database)
@@ -34,12 +35,20 @@ def tool_selector(tool_values: dict, database: str) -> str:
         return write_script_tool(tool_values['input'])
     elif tool_values['tool_name'] == "execute_script":
         return execute_script_tool()
+    elif tool_values['tool_name'] == "list_files":
+        return list_files_tool(files_directory)
     elif tool_values['tool_name'] == "DONE":
         return "DONE"
     else: 
         return "Invalid tool selected. Please check your formatting or the name of the tool you used to verify it matches one in the list of tools."
 
-def agent_loop(initial_message: str, database: str, request: str, model: str = "gpt-5-nano-2025-08-07") -> None:
+def agent_loop(
+    initial_message: str,
+    database: str,
+    files_directory: str,
+    request: str,
+    model: str = "gpt-5-nano-2025-08-07",
+) -> None:
 
 
     with open("src/sqlagent/templates/issue_command.md", "r") as f:
@@ -99,13 +108,13 @@ def agent_loop(initial_message: str, database: str, request: str, model: str = "
         print(agent_turn)
 
         tool_code = parse_tool_selection(agent_turn)
-        tool_output = tool_selector(tool_code, database)
+        tool_output = tool_selector(tool_code, database, files_directory)
         print(tool_output[:200])
         if tool_output == "DONE":
             task_status = "DONE"
         messages.append({
             "role": "system",
-            "content": "#TOOL OUTPUT\n" + tool_selector(tool_code, database)
+            "content": "#TOOL OUTPUT\n" + tool_selector(tool_code, database, files_directory)
         })
         
     # messages.append({
@@ -123,17 +132,24 @@ def agent_loop(initial_message: str, database: str, request: str, model: str = "
     return messages
 
 
-def sqlagent(request: str, database: str) -> None:
+def sqlagent(request: str, database: str, files_directory: str) -> None:
 
     with open("src/sqlagent/templates/initial.md", "r") as f:
         initial_message_template = Template(f.read())
     
     initial_message = initial_message_template.render(
         database=database,
-        request=request
+        files_directory=files_directory,
+        request=request,
         )
     
-    message_log = agent_loop(initial_message, database, request=request, model="gpt-5-nano-2025-08-07")
+    message_log = agent_loop(
+        initial_message,
+        database,
+        files_directory,
+        request=request,
+        model="gpt-5-nano-2025-08-07",
+    )
 
     with open("bin/sqlagent_message_log.txt", "w") as f:
         for message in message_log:
@@ -143,9 +159,10 @@ def sqlagent(request: str, database: str) -> None:
 def cli() -> None:
     """Interactive CLI: prompt for database path and agent request, then run sqlagent."""
     database = input("Database path: ").strip()
+    files_directory = input("Files directory: ").strip()
     while True:
         request = input("Agent prompt: ").strip()
-        sqlagent(request, database)
+        sqlagent(request, database, files_directory)
 
         again = input("Make another request? (y/n): ").strip().lower()
         if again not in ("y", "yes"):
